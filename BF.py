@@ -3,7 +3,7 @@ import numpy as np
 from functools import partial
 
 
-class Program:
+class Interpreter:
 
     def __init__(self, program=''):
 
@@ -21,8 +21,6 @@ class Program:
                     ']': partial(self.jump_to, lambda pointer: self.find_next_loop(pointer, -1), lambda _: self.mem[self.pointer]),
                     '.': self.print,
                     ',': self.input}
-
-        self.display = tk.Tk()
 
     def run(self, instruction_pointer=0):
 
@@ -101,7 +99,7 @@ class Program:
 
 def run(program):
 
-    program = Program(program=program)
+    program = Interpreter(program=program)
 
     program.run()
 
