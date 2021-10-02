@@ -1,80 +1,68 @@
-import tkinter as tk
-import numpy as np
-from functools import partial
-
-
 class Interpreter:
 
-    def __init__(self, program=''):
+    def __init__(self, program):
 
         self.program = program
 
+        self.program_pointer = 0
+
         self.mem = np.array((0, 0))
 
-        self.pointer = 0
+        self.mem_pointer = 0
 
-        self.key = {'+': partial(self.increase, 1),
-                    '-': partial(self.increase, -1),
-                    '>': partial(self.increment, 1),
-                    '<': partial(self.increment, -1),
-                    '[': partial(self.jump_to, lambda pointer: self.find_next_loop(pointer, 1), lambda _: self.mem[self.pointer] == 0),
-                    ']': partial(self.jump_to, lambda pointer: self.find_next_loop(pointer, -1), lambda _: self.mem[self.pointer]),
-                    '.': self.print,
-                    ',': self.input}
+        self.key = {
+            '+': partial(self.increase, 1),
+            '-': partial(self.increase, -1),
+            '>': partial(self.increment, 1),
+            '<': partial(self.increment, -1),
+            '[': partial(self.ex_if, partial(self.find_next_loop, 1), lambda: self.mem[self.mem_pointer] == 0),
+            ']': partial(self.ex_if, partial(self.find_next_loop, -1), lambda: self.mem[self.mem_pointer]),
+            '.': self.input,
+            ',': self.output}
 
-    def run(self, instruction_pointer=0):
+    def run(self):
 
-        while not instruction_pointer == len(self.program):
+        while self.program_pointer < len(self.program):
 
-            if (symbol := self.program[instruction_pointer]) in self.key:
+            self.execute()
 
-                instruction_pointer = self.key[symbol](instruction_pointer)
+    def execute(self):
 
-            instruction_pointer += 1
+        if (command := self.program[self.program_pointer]) in self.key:
 
-    def increase(self, value, pointer):
+            self.key[command]()
 
-        self.mem[self.pointer] += value
+        self.program_pointer += 1
 
-        return pointer
+    def increase(self, value):
 
-    def increment(self, value, pointer):
+        self.mem[self.mem_pointer] += value
 
-        self.pointer += value
+    def increment(self, value):
 
-        if not self.pointer < len(self.mem):
+        self.mem_pointer += value
 
-            self.mem = np.append(self.mem, np.full(self.pointer - len(self.mem) + 1, 0))
+        if not self.mem_pointer < len(self.mem):
 
-        if self.pointer < 0:
+            self.mem = np.append(self.mem, np.full(self.mem_pointer - len(self.mem) + 1, 0))
 
-            self.pointer = 0
+        if self.mem_pointer < 0:
 
-        return pointer
+            self.mem_pointer = 0
 
-    def jump_to(self, target, condition, pointer):
+    def ex_if(self, func, condition):
 
-        if condition(pointer):
+        if condition():
 
-            return target(pointer)
+            self.program_pointer = func()
 
-        return pointer
-
-    def find_next_loop(self, pointer, direction):
+    def find_next_loop(self, direction):
 
         level = 0
 
-        if self.program[pointer] == '[':
+        pointer = self.program_pointer
 
-            level += 1
-
-        if self.program[pointer] == ']':
-
-            level += -1
-
-        while not level == 0:
-
-            pointer += direction
+        while True:
 
             if self.program[pointer] == '[':
                 level += 1
@@ -82,32 +70,19 @@ class Interpreter:
             elif self.program[pointer] == ']':
                 level += -1
 
+            if level == 0:
+
+                break
+
+            pointer += direction
+                
         return pointer
 
-    def print(self, pointer):
+    def input(self):
 
-        print(chr(self.mem[self.pointer]))
+        self.mem[self.mem_pointer] = ord(input())
 
-        return pointer
+    def output(self):
 
-    def input(self, pointer):
+        print(chr(self.mem[self.mem_pointer]))
 
-        self.mem[self.pointer] = ord(input())
-
-        return pointer
-
-
-def run(program):
-
-    program = Interpreter(program=program)
-
-    program.run()
-
-    print(program.mem)
-
-
-if __name__ == '__main__':
-
-    while True:
-
-        run(input())
